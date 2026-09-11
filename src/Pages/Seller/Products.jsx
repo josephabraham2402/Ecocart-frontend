@@ -2,6 +2,7 @@ import {useState, useEffect, useCallback} from 'react';
 import { getSellerProducts, createProduct, updateProduct, deleteProduct } from '../../Service/Seller';
 import ProductFormModal from '../../Components/ProductFormModal';
 import Pagination from '../../Components/Pagination';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const getCarbonScore = (footprint) => {
@@ -127,7 +128,16 @@ export default function SellerProducts() {
         }
     };
 
-    if (loading) return <div>Loading products...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading products..." 
+                subMessage="Fetching your seller inventory..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

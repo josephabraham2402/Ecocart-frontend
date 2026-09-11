@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 // Import the new service functions
 import { getAdminSellers, updateAdminSellerStatus, deleteAdminSeller, getAdminAverageSellerRating } from '../../Service/AdminService';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 // Updated StatCard: Removed 'change' prop entirely
@@ -139,7 +140,16 @@ export default function ManageSellers() {
     };
 
 
-    if (loading) return <div className="text-center p-10">Loading Sellers... <span role="img" aria-label="loading">⏳</span></div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading Sellers..." 
+                subMessage="Fetching seller verification requests and store performance..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
+import { LoadingScreen, LoadingSpinner } from '../../Components/LoadingSpinner';
 import { getCart, removeFromCart, updateCartQuantity } from '../../Service/Buyer';
 import toast from 'react-hot-toast';
 
-const CartItem = ({ item, onQuantityChange, onRemove }) => {
+const CartItem = ({ item, onQuantityChange, onRemove, isUpdating }) => {
     const product = item.product;
     if (!product || typeof product.Price !== 'number') return null;
 
@@ -12,7 +13,7 @@ const CartItem = ({ item, onQuantityChange, onRemove }) => {
     const imageUrl = product.Images && product.Images.length > 0 ? product.Images[0].src : 'https://via.placeholder.com/150';
 
     return (
-        <div className={`flex items-center bg-white p-4 rounded-lg shadow-md mb-4 ${isOutOfStock ? 'opacity-50 bg-red-50' : ''}`}>
+        <div className={`relative flex items-center bg-white p-4 rounded-lg shadow-md mb-4 transition-all duration-200 ${isOutOfStock ? 'opacity-50 bg-red-50' : ''}`}>
             <img src={imageUrl} alt={product.Title} className="w-24 h-24 object-cover rounded-md" />
             <div className="flex-grow mx-4">
                 <h3 className="font-bold">{product.Title}</h3>
@@ -20,14 +21,30 @@ const CartItem = ({ item, onQuantityChange, onRemove }) => {
                 {isOutOfStock && <p className="font-bold text-red-600">This item is now out of stock.</p>}
             </div>
             <div className="flex items-center space-x-3">
-                <button onClick={() => onQuantityChange(product._id, item.quantity - 1)} disabled={isOutOfStock} className="px-3 py-1 border rounded-md disabled:opacity-50">-</button>
-                <span>{item.quantity}</span>
-                <button onClick={() => onQuantityChange(product._id, item.quantity + 1)} disabled={isOutOfStock} className="px-3 py-1 border rounded-md disabled:opacity-50">+</button>
+                <button 
+                    onClick={() => onQuantityChange(product._id, item.quantity - 1)} 
+                    disabled={isOutOfStock} 
+                    className="px-3 py-1 border rounded-md hover:bg-gray-100 disabled:opacity-50 transition-colors font-semibold"
+                >
+                    -
+                </button>
+                <span className="font-medium min-w-[20px] text-center">{item.quantity}</span>
+                <button 
+                    onClick={() => onQuantityChange(product._id, item.quantity + 1)} 
+                    disabled={isOutOfStock} 
+                    className="px-3 py-1 border rounded-md hover:bg-gray-100 disabled:opacity-50 transition-colors font-semibold"
+                >
+                    +
+                </button>
             </div>
             <div className="w-24 text-center font-bold">
                 Rs.{(product.Price * item.quantity).toFixed(2)}
             </div>
-            <button onClick={() => onRemove(product._id)} className="ml-4 text-red-500 hover:text-red-700">
+            <button 
+                onClick={() => onRemove(product._id)} 
+                className="ml-4 text-red-500 hover:text-red-700 transition-colors"
+                title="Remove item"
+            >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd"></path></svg>
             </button>
         </div>
@@ -35,8 +52,10 @@ const CartItem = ({ item, onQuantityChange, onRemove }) => {
 };
 
 export default function Cart() {
-    const [cart, setCart] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const location = useLocation();
+    const [cart, setCart] = useState(location.state?.initialCart || null);
+    const [loading, setLoading] = useState(!location.state?.initialCart);
+    const [updatingItemId, setUpdatingItemId] = useState(null);
     const navigate = useNavigate();
 
     const fetchCart = useCallback(async () => {
@@ -48,6 +67,7 @@ export default function Cart() {
             navigate('/login');
         } finally {
             setLoading(false);
+            setUpdatingItemId(null);
         }
     }, [navigate]);
 
@@ -60,23 +80,54 @@ export default function Cart() {
             await handleRemoveItem(productId);
             return;
         }
+
+        // 1. Optimistic UI update (instant 0ms response)
+        const previousCart = cart;
+        setCart(prev => {
+            if (!prev || !prev.products) return prev;
+            return {
+                ...prev,
+                products: prev.products.map(item =>
+                    item.product?._id === productId
+                        ? { ...item, quantity }
+                        : item
+                )
+            };
+        });
+
+        // 2. Persist to server in background
         try {
-            await updateCartQuantity(productId, quantity);
-            toast.success("Cart updated.");
-            fetchCart();
-        } catch (error)
- {
-            toast.error(error.message);
+            const data = await updateCartQuantity(productId, quantity);
+            if (data?.products) {
+                setCart(data);
+            }
+        } catch (error) {
+            setCart(previousCart);
+            toast.error(error.message || "Failed to update quantity.");
         }
     };
 
     const handleRemoveItem = async (productId) => {
+        // 1. Optimistic UI update (instant 0ms response)
+        const previousCart = cart;
+        setCart(prev => {
+            if (!prev || !prev.products) return prev;
+            return {
+                ...prev,
+                products: prev.products.filter(item => item.product?._id !== productId)
+            };
+        });
+
+        // 2. Persist to server in background
         try {
-            await removeFromCart(productId);
+            const data = await removeFromCart(productId);
             toast.success("Item removed from cart.");
-            fetchCart();
+            if (data?.products) {
+                setCart(data);
+            }
         } catch (error) {
-            toast.error(error.message);
+            setCart(previousCart);
+            toast.error(error.message || "Failed to remove item.");
         }
     };
     
@@ -115,7 +166,14 @@ export default function Cart() {
         });
     };
 
-    if (loading) return <div>Loading Cart...</div>;
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen message="Loading your cart..." subMessage="Checking stock and eco savings..." fullScreen={false} className="min-h-[80vh]" />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">
@@ -129,6 +187,7 @@ export default function Cart() {
                                 item={item} 
                                 onQuantityChange={handleQuantityChange} 
                                 onRemove={() => handleRemoveItem(item.product._id)} 
+                                isUpdating={updatingItemId === item.product._id}
                             />
                         ))
                     ) : (
@@ -155,7 +214,7 @@ export default function Cart() {
                         <button 
                             onClick={handleCheckout} 
                             disabled={isCartInvalid}
-                            className="w-full mt-6 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            className="w-full mt-6 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                         >
                             Proceed to Checkout
                         </button>

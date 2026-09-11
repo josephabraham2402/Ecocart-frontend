@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import { getWishlist, removeFromWishlist, addToCart } from '../../Service/Buyer';
 import toast from 'react-hot-toast';
 
@@ -69,7 +70,19 @@ export default function Wishlist() {
         }
     };
 
-    if (loading) return <div>Loading Wishlist...</div>;
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen 
+                    message="Loading your wishlist..." 
+                    subMessage="Fetching your saved eco favorites..." 
+                    fullScreen={false} 
+                    className="min-h-[80vh]" 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">

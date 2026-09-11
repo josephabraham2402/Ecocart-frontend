@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getAdminProducts } from '../../Service/AdminService';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const SearchIcon = () => <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path></svg>;
@@ -23,7 +24,8 @@ export default function ManageProducts() {
         setLoading(true);
         try {
             const data = await getAdminProducts();
-            setProducts(data || []);
+            const productList = Array.isArray(data) ? data : (data?.products || []);
+            setProducts(productList);
         } catch (error) {
             toast.error(error.message || "Failed to fetch products.");
             setProducts([]);
@@ -41,7 +43,16 @@ export default function ManageProducts() {
         product.Category.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <div className="text-center p-10">Loading Products... <span role="img" aria-label="loading">⏳</span></div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading Products..." 
+                subMessage="Fetching catalog listings and compliance stats..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

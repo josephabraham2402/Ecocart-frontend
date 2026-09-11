@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../../Service/User';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 import AccountCredentials from '../../Components/seller/AccountCredentials';
@@ -57,7 +58,14 @@ export default function SellerSettings() {
     };
 
     if (!profile) {
-        return <div>Loading settings...</div>;
+        return (
+            <LoadingScreen 
+                message="Loading settings..." 
+                subMessage="Retrieving account credentials and preferences..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
     }
 
     return (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
 import Reviews from '../../Components/Reviews';
+import { LoadingScreen, LoadingSpinner } from '../../Components/LoadingSpinner';
 import { getProductById } from '../../Service/Product';
 import { addToCart } from '../../Service/Buyer';
 import toast from 'react-hot-toast';
@@ -9,6 +10,8 @@ import toast from 'react-hot-toast';
 export default function ProductDetail() {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isAddingCart, setIsAddingCart] = useState(false);
+    const [isBuying, setIsBuying] = useState(false);
     const { id: productId } = useParams();
     const navigate = useNavigate();
 
@@ -28,28 +31,49 @@ export default function ProductDetail() {
     }, [productId, navigate]);
 
     const handleAddToCart = async () => {
-        if (product.Quantity <= 0) return;
+        if (product.Quantity <= 0 || isAddingCart) return;
+        setIsAddingCart(true);
         try {
             await addToCart(product._id);
             toast.success(`${product.Title} added to cart!`);
         } catch (error) {
             toast.error(error.message || "Could not add to cart.");
+        } finally {
+            setIsAddingCart(false);
         }
     };
 
     const handleBuyNow = async () => {
-        if (product.Quantity <= 0) return;
+        if (product.Quantity <= 0 || isBuying) return;
+        setIsBuying(true);
         try {
-            await addToCart(product._id);
-            toast.success(`${product.Title} added to cart! Proceeding to checkout.`);
-            navigate('/cart');
+            const updatedCart = await addToCart(product._id);
+            navigate('/cart', { state: { initialCart: updatedCart } });
         } catch (error) {
             toast.error(error.message || "Could not process purchase.");
+            setIsBuying(false);
         }
     };
 
-    if (loading) return <div>Loading Product...</div>;
-    if (!product) return <div>Product not found.</div>;
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen message="Loading product details..." subMessage="Fetching eco specifications and reviews..." fullScreen={false} className="min-h-[80vh]" />
+            </div>
+        );
+    }
+    
+    if (!product) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <div className="container mx-auto px-6 py-16 text-center text-gray-500">
+                    <p className="text-xl font-semibold">Product not found.</p>
+                </div>
+            </div>
+        );
+    }
 
     const imageUrl = product.Images && product.Images.length > 0 ? product.Images[0].src : 'https://via.placeholder.com/400';
     const isOutOfStock = product.Quantity <= 0;
@@ -91,17 +115,31 @@ export default function ProductDetail() {
                             <div className="mt-6 flex space-x-4">
                                 <button 
                                     onClick={handleBuyNow} 
-                                    disabled={isOutOfStock}
-                                    className="flex-1 bg-green-500 text-white font-bold py-3 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    disabled={isOutOfStock || isBuying}
+                                    className="flex-1 bg-green-500 text-white font-bold py-3 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                                 >
-                                    {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
+                                    {isBuying ? (
+                                        <>
+                                            <LoadingSpinner size="sm" color="white" />
+                                            <span>Processing...</span>
+                                        </>
+                                    ) : (
+                                        isOutOfStock ? 'Out of Stock' : 'Buy Now'
+                                    )}
                                 </button>
                                 <button 
                                     onClick={handleAddToCart} 
-                                    disabled={isOutOfStock}
-                                    className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-md hover:bg-gray-300 disabled:bg-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                                    disabled={isOutOfStock || isAddingCart}
+                                    className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-md hover:bg-gray-300 disabled:bg-gray-400 disabled:text-white disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                                 >
-                                    {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                                    {isAddingCart ? (
+                                        <>
+                                            <LoadingSpinner size="sm" color="gray" />
+                                            <span>Adding...</span>
+                                        </>
+                                    ) : (
+                                        isOutOfStock ? 'Out of Stock' : 'Add to Cart'
+                                    )}
                                 </button>
                             </div>
                         </div>

@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { HeartIcon, FilledHeartIcon } from './Images';
+import { LoadingSpinner } from './LoadingSpinner';
 import { addToWishlist, removeFromWishlist, addToCart } from '../Service/Buyer';
 
 export default function ProductCard({ product, wishlistItems = [], refreshWishlist }) {
     const navigate = useNavigate();
+    const [isAdding, setIsAdding] = useState(false);
+    const [isBuying, setIsBuying] = useState(false);
+    const [isWishlisting, setIsWishlisting] = useState(false);
     const isInWishlist = wishlistItems.some(item => item.product?._id === product._id);
     const isOutOfStock = product.Quantity <= 0;
 
     const handleToggleWishlist = async (e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (isWishlisting) return;
+        setIsWishlisting(true);
         try {
             if (isInWishlist) {
                 await removeFromWishlist(product._id);
@@ -23,31 +29,37 @@ export default function ProductCard({ product, wishlistItems = [], refreshWishli
             if (refreshWishlist) refreshWishlist();
         } catch (error) {
             toast.error(error.message || "Could not update wishlist.");
+        } finally {
+            setIsWishlisting(false);
         }
     };
 
     const handleAddToCart = async (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (isOutOfStock) return;
+        if (isOutOfStock || isAdding) return;
+        setIsAdding(true);
         try {
             await addToCart(product._id);
             toast.success(`${product.Title} added to cart!`);
         } catch (error) {
             toast.error(error.message || "Could not add to cart.");
+        } finally {
+            setIsAdding(false);
         }
     };
 
     const handleBuyNow = async (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (isOutOfStock) return;
+        if (isOutOfStock || isBuying) return;
+        setIsBuying(true);
         try {
-            await addToCart(product._id);
-            toast.success(`${product.Title} added to cart! Proceeding to checkout.`);
-            navigate('/cart');
+            const updatedCart = await addToCart(product._id);
+            navigate('/cart', { state: { initialCart: updatedCart } });
         } catch (error) {
             toast.error(error.message || "Could not process purchase.");
+            setIsBuying(false);
         }
     };
 
@@ -58,7 +70,7 @@ export default function ProductCard({ product, wishlistItems = [], refreshWishli
 
     return (
         <Link to={`/product/${product._id}`} className={`block group ${isOutOfStock ? 'opacity-60' : ''}`}>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden transform group-hover:-translate-y-1 transition-transform duration-300">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden transform group-hover:-translate-y-1 transition-all duration-300">
                 <div className="relative">
                     <img src={imageUrl} alt={product.Title} className="w-full h-48 object-cover" />
                     {isOutOfStock && (
@@ -66,10 +78,17 @@ export default function ProductCard({ product, wishlistItems = [], refreshWishli
                     )}
                     <button 
                         onClick={handleToggleWishlist}
-                        className="absolute top-2 right-2 text-white bg-black bg-opacity-25 rounded-full p-1 hover:bg-opacity-50 hover:text-red-500 transition-colors"
+                        disabled={isWishlisting}
+                        className="absolute top-2 right-2 text-white bg-black bg-opacity-25 rounded-full p-1.5 hover:bg-opacity-50 hover:text-red-500 transition-colors flex items-center justify-center min-w-[28px] min-h-[28px]"
                         aria-label="Toggle wishlist"
                     >
-                        {isInWishlist ? <FilledHeartIcon /> : <HeartIcon />}
+                        {isWishlisting ? (
+                            <LoadingSpinner size="xs" color="white" />
+                        ) : isInWishlist ? (
+                            <FilledHeartIcon />
+                        ) : (
+                            <HeartIcon />
+                        )}
                     </button>
                 </div>
                 <div className="p-4">
@@ -81,17 +100,35 @@ export default function ProductCard({ product, wishlistItems = [], refreshWishli
                     <div className="mt-4 flex space-x-2">
                         <button 
                             onClick={handleBuyNow}
-                            disabled={isOutOfStock}
-                            className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled={isOutOfStock || isBuying}
+                            className="w-full bg-green-500 text-white py-2 px-2 rounded-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm font-medium transition-colors"
                         >
-                            {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
+                            {isBuying ? (
+                                <>
+                                    <LoadingSpinner size="xs" color="white" />
+                                    <span>...</span>
+                                </>
+                            ) : isOutOfStock ? (
+                                'Out of Stock'
+                            ) : (
+                                'Buy Now'
+                            )}
                         </button>
                         <button 
                             onClick={handleAddToCart} 
-                            disabled={isOutOfStock}
-                            className="w-full bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300 disabled:bg-gray-400 disabled:text-white disabled:cursor-not-allowed"
+                            disabled={isOutOfStock || isAdding}
+                            className="w-full bg-gray-100 text-gray-700 py-2 px-2 rounded-md hover:bg-gray-200 disabled:bg-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm font-medium transition-colors"
                         >
-                            {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                            {isAdding ? (
+                                <>
+                                    <LoadingSpinner size="xs" color="gray" />
+                                    <span>Adding...</span>
+                                </>
+                            ) : isOutOfStock ? (
+                                'Out of Stock'
+                            ) : (
+                                'Add to Cart'
+                            )}
                         </button>
                     </div>
                 </div>

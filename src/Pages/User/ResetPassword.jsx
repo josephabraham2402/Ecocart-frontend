@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { resetPassword } from '../../Service/Auth';
 import { Password, SeePassword, NotSeePassword } from '../../Components/Images';
+import { LoadingSpinner } from '../../Components/LoadingSpinner';
 
 export default function ResetPassword() {
     const [password, setPassword] = useState('');
@@ -77,9 +78,16 @@ export default function ResetPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300"
+                        className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300 flex items-center justify-center gap-2 transition-colors"
                     >
-                        {loading ? 'Resetting...' : 'Reset Password'}
+                        {loading ? (
+                            <>
+                                <LoadingSpinner size="sm" color="white" />
+                                <span>Resetting Password...</span>
+                            </>
+                        ) : (
+                            'Reset Password'
+                        )}
                     </button>
                 </form>
             </div>

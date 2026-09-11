@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 // Import the necessary service functions
 import { getAdminCounts, getAdminSalesAndRevenue, getAdminTopProducts, getAdminSalesOverTime } from '../../Service/AdminService';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 // Import Recharts components
 import {
@@ -117,7 +118,14 @@ export default function AdminDashboard() {
 
     // Render loading indicator if either stats or charts are still loading
     if (loadingStats || loadingCharts) {
-        return <div className="text-center p-10">Loading Admin Dashboard... <span role="img" aria-label="loading">⏳</span></div>;
+        return (
+            <LoadingScreen 
+                message="Loading Admin Dashboard..." 
+                subMessage="Aggregating platform metrics, sales, and analytics..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
     }
 
     // Main component render

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Email, Password, SeePassword, NotSeePassword, GoogleIcon, FacebookIcon, RoleIcon } from "../Components/Images.jsx";
+import { LoadingSpinner } from "../Components/LoadingSpinner.jsx";
 import { registerUser } from "../Service/Auth.js";
 import toast from 'react-hot-toast';
 
@@ -116,10 +117,18 @@ export default function Register() {
                         </div>
 
                         <button
-                            type="submit" disabled={loading}
-                            className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300"
+                            type="submit" 
+                            disabled={loading}
+                            className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300 flex items-center justify-center gap-2 transition-colors"
                         >
-                            {loading ? 'Registering...' : 'Register'}
+                            {loading ? (
+                                <>
+                                    <LoadingSpinner size="sm" color="white" />
+                                    <span>Creating Account...</span>
+                                </>
+                            ) : (
+                                'Register'
+                            )}
                         </button>
                     </form>
                     

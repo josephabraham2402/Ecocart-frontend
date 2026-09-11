@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { uploadImages } from '../Service/UploadService';
 import { getWarehouses } from '../Service/Seller'; // Import warehouse service
+import { LoadingSpinner } from './LoadingSpinner';
 
 const FormField = ({ label, children, error }) => (
     <div>
@@ -257,8 +258,19 @@ export default function ProductFormModal({ isOpen, onClose, onSave, initialData 
 
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 font-semibold py-2 px-6 rounded-lg hover:bg-gray-300">Cancel</button>
-                        <button type="submit" disabled={isUploading} className="bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-700 disabled:bg-teal-400">
-                            {isUploading ? 'Uploading...' : 'Save Product'}
+                        <button 
+                            type="submit" 
+                            disabled={isUploading} 
+                            className="bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-700 disabled:bg-teal-400 flex items-center gap-2 transition-colors"
+                        >
+                            {isUploading ? (
+                                <>
+                                    <LoadingSpinner size="sm" color="white" />
+                                    <span>Uploading & Saving...</span>
+                                </>
+                            ) : (
+                                'Save Product'
+                            )}
                         </button>
                     </div>
                 </form>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../Components/Navbar';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import { getUserProfile, updateUserProfile, getUserAddresses, addAddress, updateAddress, deleteAddress } from '../../Service/User';
 import toast from 'react-hot-toast';
 
@@ -42,6 +43,7 @@ export default function Profile() {
     const [addresses, setAddresses] = useState([]);
     const [editingAddressId, setEditingAddressId] = useState(null);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [loading, setLoading] = useState(true);
     
     const fetchData = useCallback(async () => {
         try {
@@ -50,6 +52,8 @@ export default function Profile() {
             setAddresses(addressesData);
         } catch (error) {
             toast.error(error.message);
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -163,6 +167,20 @@ export default function Profile() {
             toast.error(error.message);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen 
+                    message="Loading profile..." 
+                    subMessage="Retrieving account security details and addresses..." 
+                    fullScreen={false} 
+                    className="min-h-[80vh]" 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">

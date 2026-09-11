@@ -1,42 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
-import { getAddresses, addAddress } from '../../Service/Buyer';
+import { LoadingScreen, LoadingSpinner } from '../../Components/LoadingSpinner';
 import { createOrder, makePayment, createRazorpayOrder } from '../../Service/Buyer';
+import { getUserAddresses, addAddress } from '../../Service/User';
 import toast from 'react-hot-toast';
 
 export default function Checkout() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { cart, summary } = location.state || {};
+
     const [addresses, setAddresses] = useState([]);
     const [selectedAddress, setSelectedAddress] = useState(null);
-    const [showNewAddressForm, setShowNewAddressForm] = useState(false);
     const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', postalCode: '', country: '' });
+    const [showNewAddressForm, setShowNewAddressForm] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [loading, setLoading] = useState(true);
-
-    const navigate = useNavigate();
-    const location = useLocation();
-    
-    const { cart, summary } = location.state || {};
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         if (!cart || !summary) {
-            toast.error("Your cart is empty. Please add items before checking out.");
+            toast.error("No checkout information available.");
             navigate('/cart');
             return;
         }
 
         const fetchAddresses = async () => {
             try {
-                const userAddresses = await getAddresses();
-                setAddresses(userAddresses);
-                if (userAddresses.length > 0) {
-                    const defaultAddress = userAddresses.find(a => a.isDefault) || userAddresses[0];
-                    setSelectedAddress(defaultAddress._id);
-                } else {
-                    setShowNewAddressForm(true);
+                const data = await getUserAddresses();
+                setAddresses(data);
+                if (data.length > 0) {
+                    setSelectedAddress(data[0]._id);
                 }
             } catch (error) {
-                toast.error(error.message);
+                toast.error(error.message || "Failed to fetch addresses.");
             } finally {
                 setLoading(false);
             }
@@ -45,7 +43,7 @@ export default function Checkout() {
         fetchAddresses();
     }, [cart, summary, navigate]);
 
-    const handleAddressFormChange = (e) => {
+    const handleAddressChange = (e) => {
         const { name, value } = e.target;
         setNewAddress(prev => ({ ...prev, [name]: value }));
     };
@@ -76,6 +74,7 @@ export default function Checkout() {
             address: selectedAddress,
         };
 
+        setIsProcessing(true);
         if (paymentMethod === "COD") {
             try {
                 const createdOrder = await createOrder(orderPayload);
@@ -89,6 +88,7 @@ export default function Checkout() {
                 navigate('/orders');
             } catch (error) {
                 toast.error(error.message || "Failed to place COD order.");
+                setIsProcessing(false);
             }
         } else if (paymentMethod === "UPI") {
             try {
@@ -102,6 +102,11 @@ export default function Checkout() {
                     name: "EcoCart",
                     description: "Transaction for your EcoCart order",
                     order_id: razorpayOrder.id,
+                    modal: {
+                        ondismiss: () => {
+                            setIsProcessing(false);
+                        }
+                    },
                     handler: async (response) => {
                         try {
                             // Order is created only after successful payment response
@@ -120,6 +125,7 @@ export default function Checkout() {
                             navigate('/orders');
                         } catch (handlerError) {
                             toast.error(handlerError.message || "Payment verification failed. Please contact support.");
+                            setIsProcessing(false);
                         }
                     },
                     theme: {
@@ -130,11 +136,19 @@ export default function Checkout() {
                 rzp.open();
             } catch (error) {
                 toast.error(error.message || "Could not initiate payment.");
+                setIsProcessing(false);
             }
         }
     };
 
-    if (loading || !cart) return <div>Loading Checkout...</div>;
+    if (loading || !cart) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen message="Preparing checkout..." subMessage="Setting up your eco order summary..." fullScreen={false} className="min-h-[80vh]" />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">
@@ -199,12 +213,34 @@ export default function Checkout() {
                         </div>
                         
                         {paymentMethod === 'COD' ? (
-                            <button onClick={handlePlaceOrder} className="w-full mt-6 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 font-bold">
-                                Place Order (COD)
+                            <button 
+                                onClick={handlePlaceOrder} 
+                                disabled={isProcessing}
+                                className="w-full mt-6 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <LoadingSpinner size="sm" color="white" />
+                                        <span>Placing Order...</span>
+                                    </>
+                                ) : (
+                                    "Place Order (COD)"
+                                )}
                             </button>
                         ) : (
-                            <button onClick={handlePlaceOrder} className="w-full mt-6 bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 font-bold">
-                                Pay with Razorpay
+                            <button 
+                                onClick={handlePlaceOrder} 
+                                disabled={isProcessing}
+                                className="w-full mt-6 bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 font-bold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <LoadingSpinner size="sm" color="white" />
+                                        <span>Connecting to Razorpay...</span>
+                                    </>
+                                ) : (
+                                    "Pay with Razorpay"
+                                )}
                             </button>
                         )}
                     </div>

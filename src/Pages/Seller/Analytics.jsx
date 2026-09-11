@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSellerAnalytics } from '../../Service/Seller';
 import Pagination from '../../Components/Pagination';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 export default function SellerAnalytics() {
@@ -26,7 +27,16 @@ export default function SellerAnalytics() {
         fetchAnalytics();
     }, [fetchAnalytics]);
 
-    if (loading) return <div>Loading Analytics...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading Analytics..." 
+                subMessage="Computing emissions, sales, and sustainability scores..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

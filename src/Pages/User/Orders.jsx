@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import { getOrders, cancelOrder } from '../../Service/Buyer';
 import toast from 'react-hot-toast';
 
@@ -137,7 +138,19 @@ export default function Orders() {
         }
     };
     
-    if (loading) return <div>Loading Orders...</div>;
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen 
+                    message="Loading your orders..." 
+                    subMessage="Tracking shipments and order history..." 
+                    fullScreen={false} 
+                    className="min-h-[80vh]" 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">

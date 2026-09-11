@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { forgotPassword } from '../../Service/Auth';
 import { Email } from '../../Components/Images';
+import { LoadingSpinner } from '../../Components/LoadingSpinner';
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('');
@@ -49,9 +50,16 @@ export default function ForgotPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300"
+                        className="w-full bg-orange-500 text-white p-3 rounded-lg my-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300 flex items-center justify-center gap-2 transition-colors"
                     >
-                        {loading ? 'Sending Link...' : 'Send Reset Link'}
+                        {loading ? (
+                            <>
+                                <LoadingSpinner size="sm" color="white" />
+                                <span>Sending Link...</span>
+                            </>
+                        ) : (
+                            'Send Reset Link'
+                        )}
                     </button>
                 </form>
                 <div className="text-center text-gray-400 mt-4">

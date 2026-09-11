@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getDashboardStats, getSellerOrders, getSellerProducts } from '../../Service/Seller';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import Notifications from '../../Components/Notifications';
 
@@ -65,7 +66,17 @@ export default function SellerDashboard() {
         fetchData();
     }, []);
 
-    if (loading) return <div className="flex justify-center items-center h-screen">Loading Dashboard...</div>;
+    if (loading) {
+        return (
+            <div className="flex h-screen bg-gray-100 items-center justify-center">
+                <LoadingScreen 
+                    message="Loading Seller Dashboard..." 
+                    subMessage="Calculating sales, orders, and eco-analytics..." 
+                    fullScreen={false} 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-gray-100">

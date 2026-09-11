@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSellerOrders, updateProductStatus } from '../../Service/Seller';
 import Pagination from '../../Components/Pagination';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const getStatusColor = (status) => {
@@ -103,7 +104,16 @@ export default function SellerOrders() {
         ));
     };
 
-    if (loading) return <div>Loading orders...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading orders..." 
+                subMessage="Fetching customer orders and fulfillment details..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

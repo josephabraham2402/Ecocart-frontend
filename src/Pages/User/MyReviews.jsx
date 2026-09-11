@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import { getUserReviews, deleteReview } from '../../Service/Review';
 import toast from 'react-hot-toast';
 
@@ -77,7 +78,19 @@ export default function MyReviews() {
         ));
     };
 
-    if (loading) return <div>Loading your reviews...</div>;
+    if (loading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen 
+                    message="Loading your reviews..." 
+                    subMessage="Gathering your verified feedback..." 
+                    fullScreen={false} 
+                    className="min-h-[80vh]" 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-50 min-h-screen">

@@ -4,6 +4,7 @@ import Navbar from '../../Components/Navbar';
 import Sidebar from '../../Components/Sidebar';
 import ProductCard from '../../Components/ProductCard';
 import Pagination from '../../Components/Pagination';
+import { LoadingScreen, LoadingOverlay, ProductSkeletonGrid } from '../../Components/LoadingSpinner';
 import { getWishlist } from '../../Service/Buyer.js';
 import { getAllProducts } from '../../Service/Product';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ export default function Shop() {
     const [totalProducts, setTotalProducts] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [sortBy, setSortBy] = useState('title-asc');
     const [filters, setFilters] = useState({
         price: '',
@@ -56,17 +58,31 @@ export default function Shop() {
                 getWishlist()
             ]);
 
-            setProducts(productsResult?.products || []);
-            setTotalProducts(productsResult?.totalProducts || 0);
-            setTotalPages(productsResult?.totalPages || 1);
+            const productList = Array.isArray(productsResult)
+                ? productsResult
+                : (productsResult?.products || []);
+            const total = Array.isArray(productsResult)
+                ? productsResult.length
+                : (productsResult?.totalProducts ?? productList.length);
+            const pages = Array.isArray(productsResult)
+                ? Math.ceil(productsResult.length / productsPerPage) || 1
+                : (productsResult?.totalPages || 1);
+
+            setProducts(productList);
+            setTotalProducts(total);
+            setTotalPages(pages);
             if (productsResult?.categories) {
                 setCategories(productsResult.categories);
+            } else if (Array.isArray(productsResult)) {
+                const uniqueCategories = [...new Set(productsResult.map(p => p.Category).filter(Boolean))];
+                setCategories(uniqueCategories);
             }
             setWishlist(wishlistData?.products || []);
         } catch (error) {
             toast.error(error.message || "Could not fetch page data.");
         } finally {
             setLoading(false);
+            setInitialLoading(false);
         }
     }, [navigate, filters, sortBy, currentPage, productsPerPage, searchTerm]);
 
@@ -81,7 +97,14 @@ export default function Shop() {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-    if (loading) return <div>Loading Shop...</div>;
+    if (initialLoading) {
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen message="Loading EcoCart Shop..." subMessage="Fetching the latest eco-friendly items..." fullScreen={false} className="min-h-[80vh]" />
+            </div>
+        );
+    }
 
     const startRange = (currentPage - 1) * productsPerPage + 1;
     const endRange = Math.min(currentPage * productsPerPage, totalProducts);
@@ -122,20 +145,29 @@ export default function Shop() {
                             </select>
                         </div>
                     </div>
-                    {products.length > 0 ? (
-                        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                            {products.map(product => (
-                                <ProductCard 
-                                    key={product._id} 
-                                    product={product} 
-                                    wishlistItems={wishlist}
-                                    refreshWishlist={fetchPageData}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center text-gray-500 mt-12">No products match your filters.</p>
-                    )}
+
+                    {/* Products Grid with Overlay Spinner on action update */}
+                    <div className="relative min-h-[300px]">
+                        {loading && (
+                            <LoadingOverlay message="Updating products..." />
+                        )}
+
+                        {products.length > 0 ? (
+                            <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                                {products.map(product => (
+                                    <ProductCard 
+                                        key={product._id} 
+                                        product={product} 
+                                        wishlistItems={wishlist}
+                                        refreshWishlist={fetchPageData}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            !loading && <p className="text-center text-gray-500 mt-12 bg-white p-8 rounded-xl shadow-sm border border-gray-100">No products match your filters.</p>
+                        )}
+                    </div>
+
                     <Pagination 
                         productsPerPage={productsPerPage}
                         totalProducts={totalProducts}

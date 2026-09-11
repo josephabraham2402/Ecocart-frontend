@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSellerProducts } from '../../Service/Seller';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const getCarbonScore = (footprint) => {
@@ -34,7 +35,16 @@ export default function LowStockProducts() {
         fetchProducts();
     }, [fetchProducts]);
 
-    if (loading) return <div>Loading low stock products...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading low stock products..." 
+                subMessage="Checking inventory levels across warehouses..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

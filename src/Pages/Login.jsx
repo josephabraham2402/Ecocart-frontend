@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Email, Password, SeePassword, NotSeePassword, GoogleIcon, FacebookIcon } from "../Components/Images.jsx";
+import { LoadingSpinner } from "../Components/LoadingSpinner.jsx";
 import { loginUser } from "../Service/Auth.js";
 import toast from 'react-hot-toast';
 
@@ -92,9 +93,16 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-orange-500 text-white p-3 rounded-lg mb-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300"
+                            className="w-full bg-orange-500 text-white p-3 rounded-lg mb-6 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-opacity-50 disabled:bg-orange-300 flex items-center justify-center gap-2 transition-colors"
                         >
-                            {loading ? 'Logging in...' : 'Login'}
+                            {loading ? (
+                                <>
+                                    <LoadingSpinner size="sm" color="white" />
+                                    <span>Logging in...</span>
+                                </>
+                            ) : (
+                                'Login'
+                            )}
                         </button>
                     </form>
 

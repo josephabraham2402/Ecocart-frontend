@@ -46,7 +46,7 @@ export const getAdminProducts = async () => {
          throw new Error('Unauthorized access or token not found.');
      }
      const headers = { 'Authorization': `Bearer ${user.token}` };
-     const response = await fetch(`${API_BASE_URL}/api/products`, { headers });
+     const response = await fetch(`${API_BASE_URL}/api/products?limit=1000`, { headers });
      const data = await response.json();
      if (!response.ok) {
          throw new Error(data.message || 'Failed to fetch products for admin.');

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { createReview, updateReview } from '../Service/Review';
+import { LoadingSpinner } from './LoadingSpinner';
 
 const StarRating = ({ rating, setRating }) => (
     <div className="flex space-x-1">
@@ -29,6 +30,7 @@ const containsBlockedWords = (text) => {
 export default function ReviewForm({ productId, existingReview, onReviewSubmitted, onCancelEdit }) {
     const [rating, setRating] = useState(existingReview ? existingReview.rating : 0);
     const [reviewText, setReviewText] = useState(existingReview ? existingReview.review : '');
+    const [submitting, setSubmitting] = useState(false);
     const isEditing = !!existingReview;
 
     const handleSubmit = async (e) => {
@@ -40,6 +42,7 @@ export default function ReviewForm({ productId, existingReview, onReviewSubmitte
             return toast.error("Your review contains inappropriate language.");
         }
 
+        setSubmitting(true);
         try {
             if (isEditing) {
                 await updateReview(existingReview._id, { rating, review: reviewText });
@@ -51,6 +54,8 @@ export default function ReviewForm({ productId, existingReview, onReviewSubmitte
             onReviewSubmitted();
         } catch (error) {
             toast.error(error.message);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -65,13 +70,25 @@ export default function ReviewForm({ productId, existingReview, onReviewSubmitte
                     placeholder="Share your thoughts about the product..."
                     className="w-full p-2 border rounded mt-4"
                     rows="4"
+                    disabled={submitting}
                 />
                 <div className="flex items-center gap-4 mt-4">
-                    <button type="submit" className="bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-700">
-                        {isEditing ? "Update Review" : "Submit Review"}
+                    <button 
+                        type="submit" 
+                        disabled={submitting}
+                        className="bg-teal-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-teal-700 disabled:bg-teal-400 flex items-center gap-2 transition-colors"
+                    >
+                        {submitting ? (
+                            <>
+                                <LoadingSpinner size="sm" color="white" />
+                                <span>{isEditing ? "Updating..." : "Submitting..."}</span>
+                            </>
+                        ) : (
+                            isEditing ? "Update Review" : "Submit Review"
+                        )}
                     </button>
                     {isEditing && (
-                        <button type="button" onClick={onCancelEdit} className="text-gray-600 hover:underline">
+                        <button type="button" onClick={onCancelEdit} disabled={submitting} className="text-gray-600 hover:underline">
                             Cancel
                         </button>
                     )}

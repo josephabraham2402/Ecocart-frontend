@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSellerReviews } from '../../Service/Seller';
 import Pagination from '../../Components/Pagination';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 
 const StaticStarRating = ({ rating }) => (
@@ -36,7 +37,16 @@ export default function SellerReviews() {
         fetchReviews();
     }, [fetchReviews]);
 
-    if (loading) return <div>Loading Reviews...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading Reviews..." 
+                subMessage="Fetching customer ratings and product feedback..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

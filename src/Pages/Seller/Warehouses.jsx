@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getWarehouses, addWarehouse, updateWarehouse, deleteWarehouse } from '../../Service/Seller';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import MapPicker from '../../Components/MapPicker';
 
@@ -181,7 +182,16 @@ export default function Warehouses() {
         setShowForm(true);
     };
     
-    if (loading) return <div>Loading Warehouses...</div>;
+    if (loading) {
+        return (
+            <LoadingScreen 
+                message="Loading Warehouses..." 
+                subMessage="Fetching logistics facilities and geo-locations..." 
+                fullScreen={false} 
+                className="py-24"
+            />
+        );
+    }
 
     return (
         <div>

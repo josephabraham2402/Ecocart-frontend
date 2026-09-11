@@ -6,6 +6,8 @@ import ProductCard from '../../Components/ProductCard.jsx';
 import toast from 'react-hot-toast';
 import { getWishlist } from '../../Service/Buyer.js';
 
+import { LoadingScreen } from '../../Components/LoadingSpinner.jsx';
+
 export default function Home() {
     const [products, setProducts] = useState([]);
      const [wishlist, setWishlist] = useState([]);
@@ -24,7 +26,10 @@ export default function Home() {
                 getWishlist()
             ]);
             
-            setProducts(productsResult?.products || []);
+            const productList = Array.isArray(productsResult)
+                ? productsResult
+                : (productsResult?.products || []);
+            setProducts(productList);
             setWishlist(wishlistData?.products || []);
         } catch (error) {
             toast.error(error.message || "Could not fetch data.");
@@ -38,7 +43,17 @@ export default function Home() {
     }, [fetchAllData]);
 
     if (loading) {
-        return <div>Loading...</div>; // You can replace this with a spinner component
+        return (
+            <div className="bg-gray-50 min-h-screen">
+                <Navbar />
+                <LoadingScreen 
+                    message="Discovering sustainable products..." 
+                    subMessage="Loading curated eco-friendly recommendations..." 
+                    fullScreen={false} 
+                    className="min-h-[80vh]" 
+                />
+            </div>
+        );
     }
 
     return (
