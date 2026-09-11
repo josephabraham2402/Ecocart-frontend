@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../Components/Navbar';
-import { LoadingScreen, LoadingSpinner } from '../../Components/LoadingSpinner';
+import { LoadingScreen } from '../../Components/LoadingSpinner';
 import { getCart, removeFromCart, updateCartQuantity } from '../../Service/Buyer';
 import toast from 'react-hot-toast';
 
@@ -51,11 +51,37 @@ const CartItem = ({ item, onQuantityChange, onRemove, isUpdating }) => {
     );
 };
 
+const mergeCart = (prevCart, serverCart) => {
+    if (!serverCart || !Array.isArray(serverCart.products)) return prevCart;
+
+    // Build map of existing populated product objects
+    const productMap = new Map();
+    (prevCart?.products || []).forEach(item => {
+        const id = item.product?._id ? item.product._id.toString() : (typeof item.product === 'string' ? item.product : null);
+        if (id && item.product && typeof item.product === 'object' && typeof item.product.Price === 'number') {
+            productMap.set(id, item.product);
+        }
+    });
+
+    return {
+        ...serverCart,
+        products: serverCart.products.map(item => {
+            if (item.product && typeof item.product === 'object' && typeof item.product.Price === 'number') {
+                return item;
+            }
+            const id = (item.product?._id || item.product)?.toString();
+            const populated = id ? productMap.get(id) : null;
+            return {
+                ...item,
+                product: populated || item.product
+            };
+        })
+    };
+};
+
 export default function Cart() {
-    const location = useLocation();
-    const [cart, setCart] = useState(location.state?.initialCart || null);
-    const [loading, setLoading] = useState(!location.state?.initialCart);
-    const [updatingItemId, setUpdatingItemId] = useState(null);
+    const [cart, setCart] = useState(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     const fetchCart = useCallback(async () => {
@@ -67,7 +93,6 @@ export default function Cart() {
             navigate('/login');
         } finally {
             setLoading(false);
-            setUpdatingItemId(null);
         }
     }, [navigate]);
 
@@ -81,25 +106,26 @@ export default function Cart() {
             return;
         }
 
-        // 1. Optimistic UI update (instant 0ms response)
         const previousCart = cart;
+        // 1. Optimistic UI update (instant 0ms response)
         setCart(prev => {
             if (!prev || !prev.products) return prev;
             return {
                 ...prev,
-                products: prev.products.map(item =>
-                    item.product?._id === productId
+                products: prev.products.map(item => {
+                    const id = (item.product?._id || item.product)?.toString();
+                    return id === productId.toString()
                         ? { ...item, quantity }
-                        : item
-                )
+                        : item;
+                })
             };
         });
 
-        // 2. Persist to server in background
+        // 2. Persist to server in background and safely merge
         try {
             const data = await updateCartQuantity(productId, quantity);
             if (data?.products) {
-                setCart(data);
+                setCart(prev => mergeCart(prev, data));
             }
         } catch (error) {
             setCart(previousCart);
@@ -108,22 +134,25 @@ export default function Cart() {
     };
 
     const handleRemoveItem = async (productId) => {
-        // 1. Optimistic UI update (instant 0ms response)
         const previousCart = cart;
+        // 1. Optimistic UI update (instant 0ms response)
         setCart(prev => {
             if (!prev || !prev.products) return prev;
             return {
                 ...prev,
-                products: prev.products.filter(item => item.product?._id !== productId)
+                products: prev.products.filter(item => {
+                    const id = (item.product?._id || item.product)?.toString();
+                    return id !== productId.toString();
+                })
             };
         });
 
-        // 2. Persist to server in background
+        // 2. Persist to server in background and safely merge
         try {
             const data = await removeFromCart(productId);
             toast.success("Item removed from cart.");
             if (data?.products) {
-                setCart(data);
+                setCart(prev => mergeCart(prev, data));
             }
         } catch (error) {
             setCart(previousCart);
@@ -134,15 +163,18 @@ export default function Cart() {
     const { subtotal, tax, total, epGain, isCartInvalid } = useMemo(() => {
         if (!cart?.products?.length) return { subtotal: 0, tax: 0, total: 0, epGain: 0, isCartInvalid: false };
         
-        const isCartInvalid = cart.products.some(item => item.product.Quantity <= 0);
+        const validItems = cart.products.filter(item => item.product && typeof item.product === 'object' && typeof item.product.Price === 'number');
+        if (!validItems.length) return { subtotal: 0, tax: 0, total: 0, epGain: 0, isCartInvalid: false };
 
-        const subtotal = cart.products.reduce((acc, item) => {
+        const isCartInvalid = validItems.some(item => (item.product.Quantity || 0) <= 0);
+
+        const subtotal = validItems.reduce((acc, item) => {
             const price = item.product?.Price || 0;
             return acc + price * item.quantity;
         }, 0);
         const tax = subtotal * 0.10;
         const total = subtotal + tax;
-        const epGain = cart.products.reduce((acc, item) => {
+        const epGain = validItems.reduce((acc, item) => {
             const points = item.product?.EcoPoints || 0;
             return acc + points * item.quantity;
         }, 0);
@@ -183,11 +215,10 @@ export default function Cart() {
                     {cart && cart.products.length > 0 ? (
                         cart.products.map(item => (
                             <CartItem 
-                                key={item._id} 
+                                key={item._id || (item.product?._id || item.product)} 
                                 item={item} 
                                 onQuantityChange={handleQuantityChange} 
-                                onRemove={() => handleRemoveItem(item.product._id)} 
-                                isUpdating={updatingItemId === item.product._id}
+                                onRemove={() => handleRemoveItem(item.product?._id || item.product)} 
                             />
                         ))
                     ) : (

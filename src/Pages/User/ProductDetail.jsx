@@ -47,8 +47,8 @@ export default function ProductDetail() {
         if (product.Quantity <= 0 || isBuying) return;
         setIsBuying(true);
         try {
-            const updatedCart = await addToCart(product._id);
-            navigate('/cart', { state: { initialCart: updatedCart } });
+            await addToCart(product._id);
+            navigate('/cart');
         } catch (error) {
             toast.error(error.message || "Could not process purchase.");
             setIsBuying(false);
